@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Who Heard That? — the NYC honk calculator</title>
+  <meta name="description" content="If you honk your horn right now, how many New Yorkers will hear it? A semi-rigorous acoustic estimate.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📯</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="panel">
+      <header class="masthead">
+        <div class="sign" aria-hidden="true">
+          <span class="sign-top">DON'T HONK</span>
+          <span class="sign-bottom">$350 PENALTY</span>
+        </div>
+        <div>
+          <h1>Who Heard That?</h1>
+          <p class="tagline">If you honk your horn right now, how many New Yorkers will hear it? A semi-rigorous estimate.</p>
+        </div>
+      </header>
+
+      <div class="controls">
+        <div class="field">
+          <label for="hood">Where</label>
+          <select id="hood"></select>
+          <p class="hint">…or click anywhere on the map to park your car there.</p>
+        </div>
+
+        <div class="field">
+          <label for="time">When <output id="timeLabel" for="time"></output></label>
+          <input id="time" type="range" min="0" max="1425" step="15">
+          <div class="row">
+            <div class="chips" role="radiogroup" aria-label="Day type" id="dayChips">
+              <button type="button" role="radio" data-value="weekday">Weekday</button>
+              <button type="button" role="radio" data-value="weekend">Weekend</button>
+            </div>
+            <div class="chips" role="radiogroup" aria-label="Season" id="seasonChips">
+              <button type="button" role="radio" data-value="winter" title="Windows shut">Winter</button>
+              <button type="button" role="radio" data-value="spring">Spring</button>
+              <button type="button" role="radio" data-value="summer">Summer</button>
+              <button type="button" role="radio" data-value="fall">Fall</button>
+            </div>
+            <button type="button" class="link" id="nowBtn">Reset to now</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>What you're driving</label>
+          <div class="chips wrap" role="radiogroup" aria-label="Vehicle" id="vehicleChips"></div>
+        </div>
+
+        <div class="field">
+          <label for="reason">Why you're honking</label>
+          <select id="reason"></select>
+        </div>
+      </div>
+
+      <div class="honk-zone">
+        <button type="button" id="honk" class="honk" aria-label="Honk the horn. Hold for a longer honk.">
+          <span class="honk-text">HONK</span>
+          <span class="honk-sub">press &amp; hold</span>
+        </button>
+        <label class="mute"><input type="checkbox" id="sound" checked> Sound on <span class="hint">(your coworkers will hear it)</span></label>
+      </div>
+
+      <section id="results" class="results" aria-live="polite" hidden>
+        <p class="results-kicker" id="kicker"></p>
+        <p class="big"><span id="heard">0</span> <span class="big-unit">people heard that</span></p>
+        <p class="verdict" id="verdict"></p>
+        <dl class="stats" id="stats"></dl>
+        <p class="effect" id="effect"></p>
+        <div class="row">
+          <button type="button" class="btn" id="share">Copy my shame</button>
+          <span class="hint" id="shareMsg" role="status"></span>
+        </div>
+      </section>
+
+      <details class="method">
+        <summary>Is this real? (methodology)</summary>
+        <p>Sort of. The physics is real; the inputs are educated guesses.</p>
+        <ul>
+          <li><strong>Loudness:</strong> a car horn is roughly 107&nbsp;dB at one metre. Sound drops 6&nbsp;dB every time distance doubles, plus an extra ~4&nbsp;dB per 100&nbsp;m for urban clutter, plus a small boost for street-canyon reflections. Buildings block about 60% of the circle.</li>
+          <li><strong>"Heard":</strong> a horn is tonal, so it cuts through and is detectable a bit below the background level. Background is estimated from how busy the area is and drops by up to 12&nbsp;dB overnight. "Bothered" means it was clearly louder than the background.</li>
+          <li><strong>Indoors:</strong> closed windows knock off ~27&nbsp;dB, open ones ~10&nbsp;dB. How many are open depends on the season. Offices never open theirs.</li>
+          <li><strong>People:</strong> each neighborhood has an approximate residential density and a weekday-daytime density (workers, tourists). The time of day blends between them, and decides how many are asleep or outdoors. Anywhere you click is interpolated from the nearest neighborhoods.</li>
+          <li><strong>Waking up:</strong> sleepers start waking around 42&nbsp;dB indoors. Longer honks wake more of them.</li>
+          <li><strong>Dogs, babies, video calls:</strong> NYC has about 1 dog per 14 people. The rest is vibes.</li>
+        </ul>
+        <p>Accuracy: within an order of magnitude, probably. The $350 fine for unnecessary honking is real (NYC Admin. Code §24-221). Enforcement is not.</p>
+      </details>
+    </section>
+
+    <section class="map-wrap" aria-label="Map of honk reach">
+      <div id="map"></div>
+      <div class="legend" id="legend" hidden>
+        <span><i class="dot heard"></i> heard outdoors <b id="lgHeard"></b></span>
+        <span><i class="dot bothered"></i> actively bothered <b id="lgBothered"></b></span>
+        <span id="lgWokeWrap"><i class="dot woke"></i> woken up <b id="lgWoke"></b></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="data.js"></script>
+  <script src="model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
