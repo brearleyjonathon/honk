@@ -1,7 +1,8 @@
 const $ = id => document.getElementById(id);
 
 const MIN_HONK_SECONDS = 0.3;
-const COUNT_UP_MS = 800;
+const WAVE_SPEED = 100; // m/s: a third of the real speed of sound, so you can watch it spread
+const COUNT_FIELDS = ["heard", "heardOutdoors", "heardIndoors", "bothered", "annoyed", "woken", "babies", "dogs", "calls", "honkBacks"];
 const DOUBLE_TAKE_SECONDS = 2; // time each listener loses to "what was that" on top of the honk itself
 const NYC_FINE = 350;
 const NYC = { south: 40.49, north: 40.92, west: -74.26, east: -73.7 };
@@ -234,19 +235,28 @@ function update({ refit = false } = {}) {
   if (refit || !map.getBounds().contains(rings.heard.getBounds())) {
     map.fitBounds(rings.heard.getBounds(), { padding: [40, 40], maxZoom: 17 });
   }
-  if (state.hasHonked) renderResults(e, 1);
+  renderResults(e, state.hasHonked ? 1 : 0);
   return e;
 }
 
-function renderResults(e, progress) {
+// `reached` is the share of the audience the sound wave has reached so far (0 before the honk, 1 when done).
+function renderResults(full, reached) {
+  const e = { ...full };
+  for (const key of COUNT_FIELDS) e[key] = full[key] * reached;
   const seconds = Math.max(state.seconds, MIN_HONK_SECONDS);
+  const held = honkStart !== null;
+  const when = `${state.placeName} · ${state.dayType} ${formatTime(Math.round(state.hour * 60))} local · ${state.vehicle.name}`;
+
   $("results").hidden = false;
-  $("kicker").textContent =
-    `${seconds.toFixed(1)}-second honk · ${state.placeName} · ${state.dayType} ${formatTime(Math.round(state.hour * 60))} local · ${state.vehicle.name}`;
-  $("heard").textContent = fmt(e.heard * progress);
-  $("annoyed").textContent = fmt(e.annoyed * progress);
-  $("annoyedHint").textContent = honkStart !== null ? "still climbing — keep holding" : `after ${seconds.toFixed(1)} s of honking`;
-  $("verdict").textContent = verdict(e);
+  $("share").parentElement.hidden = !state.hasHonked;
+  $("kicker").textContent = state.hasHonked ? `${seconds.toFixed(1)}-second honk · ${when}` : when;
+  $("heard").textContent = fmt(e.heard);
+  $("annoyed").textContent = fmt(e.annoyed);
+  $("annoyedHint").textContent = !state.hasHonked ? "hold the horn longer to annoy more"
+    : held ? "still climbing — keep holding"
+    : reached < 1 ? "sound still spreading…"
+    : `after ${seconds.toFixed(1)} s of honking`;
+  $("verdict").textContent = !state.hasHonked ? "Press and hold the horn to find out." : reached < 0.01 ? "…" : verdict(e);
 
   const rows = [
     ["Heard it on the street", fmt(e.heardOutdoors)],
@@ -314,12 +324,12 @@ function stopSound() {
 // ---------- honking ----------
 
 let honkStart = null; // performance.now() while the horn is held
-let honkShownAt = 0;
+let waveStart = 0;    // when the current sound wave left the car
 let raf = 0;
 
 function startHonk() {
   if (honkStart !== null || !state.sample) return;
-  honkStart = honkShownAt = performance.now();
+  honkStart = waveStart = performance.now();
   state.hasHonked = true;
   state.seconds = 0;
   $("honk").classList.add("down");
@@ -340,18 +350,25 @@ function stopHonk() {
 function tick(now) {
   const held = honkStart !== null;
   if (held) state.seconds = (now - honkStart) / 1000;
-  const progress = Math.min(1, (now - honkShownAt) / COUNT_UP_MS);
   const e = currentEstimate();
-  renderResults(e, 1 - (1 - progress) ** 3);
 
-  if (held) {
-    const phase = ((now - honkStart) % 900) / 900;
-    ripple.setRadius(Math.max(1, e.radii.heard * phase));
+  // The wavefront spreads out from the car; the count grows with the area it has covered.
+  const radius = e.radii.heard;
+  const front = Math.min(WAVE_SPEED * (now - waveStart) / 1000, radius);
+  const reached = radius > 0 ? (front / radius) ** 2 : 1;
+  renderResults(e, reached);
+
+  if (front < radius) {
+    ripple.setRadius(Math.max(1, front));
+    ripple.setStyle({ opacity: 0.9 });
+  } else if (held) {
+    const phase = ((now - waveStart) % 900) / 900; // keep pulsing while the horn is held
+    ripple.setRadius(Math.max(1, radius * phase));
     ripple.setStyle({ opacity: 0.9 * (1 - phase) });
   } else {
     ripple.setStyle({ opacity: 0 });
   }
-  if (held || progress < 1) raf = requestAnimationFrame(tick);
+  if (held || reached < 1) raf = requestAnimationFrame(tick);
   else update();
 }
 
