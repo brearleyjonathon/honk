@@ -24,7 +24,7 @@ const state = {
   hour: 12,
   dayType: "weekday",
   season: "fall",
-  vehicle: VEHICLES[1],
+  vehicle: VEHICLES.find(v => v.id === "cab"),
   seconds: 0,
   hasHonked: false,
 };
