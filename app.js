@@ -162,7 +162,7 @@ function setStatus(text) {
 
 function setLoading(loading) {
   $("honk").disabled = loading;
-  $("honk").querySelector(".honk-sub").textContent = loading ? "counting people…" : "press & hold";
+  $("honk").querySelector(".honk-sub").textContent = loading ? "driving there…" : "press & hold";
 }
 
 // Move the car. `name` is optional; without it we ask the geocoder what the place is called.
@@ -187,7 +187,7 @@ async function setPlace(point, name) {
   car.setLatLng(point);
   for (const ring of Object.values(rings)) ring.setLatLng(point);
   ripple.setLatLng(point);
-  setStatus("Counting people…");
+  setStatus("Driving there…");
   setLoading(true);
 
   const [sample, label] = await Promise.all([
