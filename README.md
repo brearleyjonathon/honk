@@ -11,6 +11,7 @@ python -m http.server 8417
 ```
 
 - `data.js` — shortcut places and vehicles
+- `taxis.js` — local taxi liveries as SVG, picked from the reverse-geocoded city/country (`tools/taxis.html` shows them all)
 - `grid.js` — loads population tiles for any point on Earth
 - `model.js` — sound propagation + who's awake/outdoors/asleep by time of day
 - `app.js` — UI, map (Leaflet + OpenStreetMap tiles), search (Photon), horn sound (Web Audio)

@@ -21,6 +21,7 @@ const state = {
   placeName: "",
   tz: "America/New_York",
   sample: null, // GHSL densities for the current point; null while loading
+  taxi: TAXIS.generic, // local taxi livery for the current place
   hour: 12,
   dayType: "weekday",
   season: "fall",
@@ -120,13 +121,18 @@ function placeLabel(p) {
   return [...new Set(parts.filter(Boolean))].join(", ");
 }
 
+// Returns { label, info } where info is the raw Photon properties (city, countrycode, …) or null.
 async function reverseGeocode(point) {
   try {
     const res = await fetch(`${PHOTON}/reverse?lat=${point.lat}&lon=${point.lng}&lang=en`);
     const feature = (await res.json()).features[0];
-    if (feature) return placeLabel(feature.properties);
+    if (feature) return { label: placeLabel(feature.properties), info: feature.properties };
   } catch { /* fall through */ }
-  return `${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`;
+  return { label: `${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`, info: null };
+}
+
+function vehicleName() {
+  return state.vehicle.id === "cab" ? state.taxi.name : state.vehicle.name;
 }
 
 // ---------- map ----------
@@ -148,7 +154,15 @@ const ripple = L.circle([0, 0], { radius: 1, color: "#fff", weight: 2, fill: fal
 const car = L.marker([0, 0], { interactive: false }).addTo(map);
 
 function setCarIcon() {
-  car.setIcon(L.divIcon({ className: "car", html: state.vehicle.emoji, iconSize: [32, 32], iconAnchor: [16, 16] }));
+  const taxi = state.vehicle.id === "cab";
+  car.setIcon(L.divIcon({
+    className: "car",
+    html: taxi ? taxiSvg(state.taxi) : state.vehicle.emoji,
+    iconSize: taxi ? [46, 24] : [32, 32],
+    iconAnchor: taxi ? [23, 12] : [16, 16],
+  }));
+  const chip = $("vehicleChips").querySelector('[data-value="cab"] .emoji');
+  if (chip) chip.innerHTML = taxiSvg(state.taxi);
 }
 setCarIcon();
 
@@ -192,18 +206,20 @@ async function setPlace(point, name) {
   setStatus("Driving there…");
   setLoading(true);
 
-  const [sample, label] = await Promise.all([
+  const [sample, geo] = await Promise.all([
     sampleAt(point.lat, point.lng).catch(() => null),
-    name || reverseGeocode(point),
+    reverseGeocode(point), // always, so we know which country's taxi to put you in
   ]);
   if (seq !== placeSeq) return; // the car moved again while we were counting
 
   state.sample = sample ?? { res: 0, nres: 0, builtFrac: 0 };
-  state.placeName = label;
+  state.placeName = name || geo.label;
+  state.taxi = taxiFor(geo.info);
+  setCarIcon();
   setLoading(false);
   setStatus(sample
-    ? `${label} · ${fmt(sample.res)} residents per km² · ${state.tz.replace(/_/g, " ")}`
-    : `${label} · population data unavailable (old browser?)`);
+    ? `${state.placeName} · ${fmt(sample.res)} residents per km² · ${state.tz.replace(/_/g, " ")} · your ride: ${state.taxi.name}`
+    : `${state.placeName} · population data unavailable (old browser?)`);
   update({ refit: true });
 }
 
@@ -252,7 +268,7 @@ function renderResults(full, reached) {
   for (const key of COUNT_FIELDS) e[key] = full[key] * reached;
   const seconds = Math.max(state.seconds, MIN_HONK_SECONDS);
   const held = honkStart !== null;
-  const when = `${state.placeName} · ${state.dayType} ${formatTime(Math.round(state.hour * 60))} local · ${state.vehicle.name}`;
+  const when = `${state.placeName} · ${state.dayType} ${formatTime(Math.round(state.hour * 60))} local · ${vehicleName()}`;
 
   $("results").hidden = false;
   $("share").parentElement.hidden = !state.hasHonked;

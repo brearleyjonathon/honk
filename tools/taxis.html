@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Taxi liveries</title>
+<style>
+  body { background: #15161a; color: #eee; font: 14px system-ui; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, 150px); gap: 16px; }
+  .t { display: grid; justify-items: center; gap: 6px; text-align: center; }
+  svg { width: 128px; height: 68px; }
+</style>
+<div class="grid" id="g"></div>
+<script src="../taxis.js"></script>
+<script>
+  document.getElementById("g").innerHTML = Object.entries(TAXIS)
+    .map(([k, t]) => `<div class="t">${taxiSvg(t)}<span>${k}<br><small>${t.name}</small></span></div>`).join("");
+</script>

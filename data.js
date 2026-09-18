@@ -37,7 +37,7 @@ const PLACES = [
 const VEHICLES = [
   { id: "moped", emoji: "🛵", name: "Delivery moped", db: 96, tones: [780], wave: "square" },
   { id: "sedan", emoji: "🚗", name: "Sedan", db: 107, tones: [415, 520], wave: "sawtooth" },
-  { id: "cab", emoji: "🚕", name: "Yellow cab", db: 108, tones: [400, 500], wave: "sawtooth" },
+  { id: "cab", emoji: "🚕", name: "Local taxi", db: 108, tones: [400, 500], wave: "sawtooth" },
   { id: "suv", emoji: "🚙", name: "Huge SUV", db: 110, tones: [350, 440], wave: "sawtooth" },
   { id: "truck", emoji: "🚛", name: "Truck air horn", db: 120, tones: [155, 196, 233], wave: "sawtooth" },
 ];
