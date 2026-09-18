@@ -1,3 +1,9 @@
 # Static site, no build step.
 [build]
   publish = "."
+
+# Population tiles only change when the pipeline is re-run; cache them hard.
+[[headers]]
+  for = "/tiles/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

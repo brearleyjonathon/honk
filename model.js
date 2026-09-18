@@ -2,7 +2,7 @@
 
 const CANYON_BOOST = 3;        // reflections off building faces
 const CLUTTER_DB_PER_M = 0.04; // excess urban attenuation on top of spherical spreading
-const SHIELD = 0.4;            // share of the circle not blocked by buildings
+const M3_PER_WORKER = 20;      // calibrated so GHSL non-residential volume in Midtown ≈ 250k people/km² by day
 const FACADE = { closed: 27, open: 10 };
 const WAKE_LEVEL = 42;         // indoor dB at which sleepers start waking
 
@@ -39,25 +39,10 @@ function clamp(x, lo, hi) {
   return Math.min(hi, Math.max(lo, x));
 }
 
-function distanceKm(a, b) {
-  const x = (b.lng - a.lng) * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180) * 111.32;
-  const y = (b.lat - a.lat) * 110.57;
-  return Math.hypot(x, y);
-}
-
-// Inverse-distance-weighted density for an arbitrary point, fading out away from the city.
-function densityAt(point) {
-  let wSum = 0, res = 0, day = 0, nearest = null, nearestD = Infinity;
-  for (const h of HOODS) {
-    const d = distanceKm(point, h);
-    const w = 1 / (d * d + 0.0225);
-    wSum += w;
-    res += h.res * w;
-    day += h.day * w;
-    if (d < nearestD) { nearestD = d; nearest = h; }
-  }
-  const fade = nearestD > 2 ? Math.exp(-(nearestD - 2) / 1.5) : 1;
-  return { res: (res / wSum) * fade, day: (day / wSum) * fade, nearest, nearestKm: nearestD };
+// Residents plus a weekday-daytime crowd estimated from non-residential building volume.
+function densityFromSample(sample) {
+  const workers = sample.nres / M3_PER_WORKER;
+  return { res: sample.res, day: Math.min(400000, sample.res * 0.7 + workers) };
 }
 
 // Distance at which a source of `l0` dB (at 1 m) has fallen to `threshold` dB.
@@ -72,8 +57,13 @@ function radiusFor(l0, threshold) {
   return lo;
 }
 
-function areaKm2(r) {
-  return Math.PI * (r / 1000) ** 2 * SHIELD;
+// Share of the circle not blocked by buildings: ~0.85 in a suburb, ~0.4 downtown.
+function shieldFor(density) {
+  return 0.85 - 0.45 * clamp(Math.log10(Math.max(density.day, 1) / 2000) / 2, 0, 1);
+}
+
+function areaKm2(r, shield) {
+  return Math.PI * (r / 1000) ** 2 * shield;
 }
 
 /**
@@ -99,6 +89,7 @@ function estimate(density, o) {
   const officeness = clamp((density.day / Math.max(density.res, 1) - 1) / 5, 0, 1);
   const open = season.windowsOpen * (1 - 0.7 * work * officeness);
 
+  const shield = shieldFor(density);
   const l0 = o.vehicleDb + CANYON_BOOST;
   const r = {
     heard: radiusFor(l0, ambient - 8),
@@ -110,18 +101,18 @@ function estimate(density, o) {
     wakeOpen: radiusFor(l0, WAKE_LEVEL + FACADE.open),
     wakeClosed: radiusFor(l0, WAKE_LEVEL + FACADE.closed),
   };
-  const indoorArea = (rOpen, rClosed) => open * areaKm2(rOpen) + (1 - open) * areaKm2(rClosed);
+  const indoorArea = (rOpen, rClosed) => open * areaKm2(rOpen, shield) + (1 - open) * areaKm2(rClosed, shield);
 
   const wakeChance = clamp(0.15 + 0.08 * o.seconds, 0, 0.6);
   const wakeArea = indoorArea(r.wakeOpen, r.wakeClosed);
   const woken = asleep * wakeArea * wakeChance;
 
-  const heardOutdoors = outdoors * areaKm2(r.heard);
+  const heardOutdoors = outdoors * areaKm2(r.heard, shield);
   const heardIndoors = indoors * indoorArea(r.heardOpen, r.heardClosed);
   const heard = heardOutdoors + heardIndoors + woken;
 
   const botheredIndoors = indoors * indoorArea(r.botheredOpen, r.botheredClosed);
-  const bothered = outdoors * areaKm2(r.bothered) + botheredIndoors + woken;
+  const bothered = outdoors * areaKm2(r.bothered, shield) + botheredIndoors + woken;
   // Everyone else who heard it has a fuse of a few seconds.
   const annoyed = bothered + (heard - bothered) * (1 - Math.exp(-Math.max(0, o.seconds - 0.3) / 3));
 
@@ -130,11 +121,11 @@ function estimate(density, o) {
   // ~1 dog per 14 New Yorkers; they hear further than we do and a quarter have opinions.
   const dogs = density.res * 0.07 * indoorArea(r.heardOpen * 1.3, r.heardClosed * 1.3) * 0.25;
   const calls = o.dayType === "weekday" ? botheredIndoors * 0.12 * work : 0;
-  const honkBacks = outdoors * areaKm2(r.bothered) * 0.03 * Math.min(3, 1 + o.seconds / 4);
+  const honkBacks = outdoors * areaKm2(r.bothered, shield) * 0.03 * Math.min(3, 1 + o.seconds / 4);
 
   return {
     heard, heardOutdoors, heardIndoors, bothered, annoyed, woken, babies, dogs, calls, honkBacks,
-    ambient, asleepFrac, people,
+    ambient, asleepFrac, people, shield,
     radii: { heard: r.heard, bothered: r.bothered, woke: open > 0.2 ? r.wakeOpen : r.wakeClosed },
   };
 }

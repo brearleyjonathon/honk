@@ -1,2 +1,4 @@
 *.zip
 .netlify/
+raw/
+tiles-work/
