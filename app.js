@@ -171,6 +171,11 @@ async function setPlace(point, name) {
   state.point = point;
   state.placeName = name || `${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`;
   state.sample = null;
+  // New place, new audience: back to zero until the horn is pressed again.
+  stopHonk();
+  cancelAnimationFrame(raf);
+  state.hasHonked = false;
+  state.seconds = 0;
   state.tz = timeZoneFor(point);
   resetToNow(); // "right now" means right now *there*
 
