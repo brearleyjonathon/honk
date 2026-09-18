@@ -162,9 +162,19 @@ input[type="search"]::placeholder { color: var(--muted); }
 .chips button:last-child { border-right: 0; }
 .chips button:hover { color: var(--text); }
 .chips button[aria-checked="true"] { background: var(--taxi); color: #111; }
-.chips.wrap { display: flex; flex-wrap: wrap; gap: 6px; border: 0; border-radius: 0; overflow: visible; }
-.chips.wrap button { border: 1px solid var(--line); border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; }
-.chips .emoji { font-size: 18px; line-height: 1; }
+.chips.wrap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; border: 0; border-radius: 0; overflow: visible; }
+.chips.wrap button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.15;
+  text-align: center;
+}
+.chips .emoji { font-size: 26px; line-height: 1; }
 
 .link {
   border: 0;
