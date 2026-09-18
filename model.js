@@ -122,16 +122,18 @@ function estimate(density, o) {
 
   const botheredIndoors = indoors * indoorArea(r.botheredOpen, r.botheredClosed);
   const bothered = outdoors * areaKm2(r.bothered) + botheredIndoors + woken;
+  // Everyone else who heard it has a fuse of a few seconds.
+  const annoyed = bothered + (heard - bothered) * (1 - Math.exp(-Math.max(0, o.seconds - 0.3) / 3));
 
   // Babies are 1.2% of residents, nap at all hours, and wake easily.
   const babies = density.res * 0.012 * Math.max(asleepFrac, 0.45) * wakeArea * clamp(wakeChance * 2, 0, 0.9);
   // ~1 dog per 14 New Yorkers; they hear further than we do and a quarter have opinions.
   const dogs = density.res * 0.07 * indoorArea(r.heardOpen * 1.3, r.heardClosed * 1.3) * 0.25;
   const calls = o.dayType === "weekday" ? botheredIndoors * 0.12 * work : 0;
-  const honkBacks = outdoors * areaKm2(r.bothered) * 0.03;
+  const honkBacks = outdoors * areaKm2(r.bothered) * 0.03 * Math.min(3, 1 + o.seconds / 4);
 
   return {
-    heard, heardOutdoors, heardIndoors, bothered, woken, babies, dogs, calls, honkBacks,
+    heard, heardOutdoors, heardIndoors, bothered, annoyed, woken, babies, dogs, calls, honkBacks,
     ambient, asleepFrac, people,
     radii: { heard: r.heard, bothered: r.bothered, woke: open > 0.2 ? r.wakeOpen : r.wakeClosed },
   };

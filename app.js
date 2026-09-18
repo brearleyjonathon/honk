@@ -20,7 +20,6 @@ const state = {
   dayType: "weekday",
   season: "fall",
   vehicle: VEHICLES[1],
-  reason: REASONS[0],
   seconds: 0,
   hasHonked: false,
 };
@@ -82,6 +81,9 @@ function verdict(e) {
   else line = "A stadium's worth of New Yorkers heard you. None of them were the car in front of you.";
   if (e.woken >= 1) {
     line += ` You also woke up ${fmt(e.woken)} ${Math.round(e.woken) === 1 ? "person" : "people"}. They know what you drive.`;
+  }
+  if (n >= 20 && e.annoyed / e.heard > 0.9) {
+    line += " At this point everyone who heard you is annoyed. Mission accomplished?";
   }
   return line;
 }
@@ -169,13 +171,14 @@ function renderResults(e, progress) {
   $("kicker").textContent =
     `${seconds.toFixed(1)}-second honk · ${state.placeName} · ${state.dayType} ${formatTime(Math.round(state.hour * 60))} · ${state.vehicle.name}`;
   $("heard").textContent = fmt(e.heard * progress);
+  $("annoyed").textContent = fmt(e.annoyed * progress);
+  $("annoyedHint").textContent = honkStart !== null ? "still climbing — keep holding" : `after ${seconds.toFixed(1)} s of honking`;
   $("verdict").textContent = verdict(e);
-  $("effect").textContent = state.reason.effect;
 
   const rows = [
     ["Heard it on the street", fmt(e.heardOutdoors)],
     ["Heard it indoors", fmt(e.heardIndoors)],
-    ["Actively bothered", fmt(e.bothered)],
+    ["Annoyed instantly", fmt(e.bothered)],
   ];
   if (e.asleepFrac > 0.1 || e.woken >= 0.5) rows.push(["Woken up", fmt(e.woken)]);
   if (e.babies >= 0.5) rows.push(["Sleeping babies woken", `${fmt(e.babies)} (parents notified)`]);
@@ -185,7 +188,7 @@ function renderResults(e, progress) {
   rows.push(["Collective human attention consumed", formatDuration(e.heard * (seconds + DOUBLE_TAKE_SECONDS))]);
   const venue = venueComparison(e.heard);
   if (venue) rows.push(["Audience size", venue]);
-  if (e.bothered >= 1) rows.push(["Fine per person bothered, if ticketed", `$${(FINE / e.bothered).toFixed(2)} — a bargain`]);
+  if (e.annoyed >= 1) rows.push(["Fine per person annoyed, if ticketed", `$${(FINE / e.annoyed).toFixed(2)} — a bargain`]);
   rows.push(["Cars that moved because of it", "0"]);
 
   $("stats").replaceChildren(...rows.flatMap(([label, value]) => {
@@ -329,12 +332,6 @@ function init() {
     if (h) setPoint({ lat: h.lat, lng: h.lng }, h.name, false);
   });
 
-  $("reason").append(...REASONS.map(r => new Option(r.name, r.id)));
-  $("reason").addEventListener("change", ev => {
-    state.reason = REASONS.find(r => r.id === ev.target.value);
-    update();
-  });
-
   $("vehicleChips").append(...VEHICLES.map(v => {
     const chip = document.createElement("button");
     chip.type = "button";
@@ -364,7 +361,7 @@ function init() {
   $("share").addEventListener("click", async () => {
     const e = currentEstimate();
     const text = `I honked for ${Math.max(state.seconds, MIN_HONK_SECONDS).toFixed(1)}s (${state.placeName}, ${formatTime(Math.round(state.hour * 60))}). ` +
-      `${fmt(e.heard)} people heard it${e.woken >= 1 ? `, ${fmt(e.woken)} woke up` : ""}. Cars that moved: 0. ${location.href}`;
+      `${fmt(e.heard)} people heard it, ${fmt(e.annoyed)} are annoyed${e.woken >= 1 ? `, ${fmt(e.woken)} woke up` : ""}. Cars that moved: 0. ${location.href}`;
     try {
       await navigator.clipboard.writeText(text);
       $("shareMsg").textContent = "Copied. Post it where your victims can see.";

@@ -56,10 +56,6 @@
           <div class="chips wrap" role="radiogroup" aria-label="Vehicle" id="vehicleChips"></div>
         </div>
 
-        <div class="field">
-          <label for="reason">Why you're honking</label>
-          <select id="reason"></select>
-        </div>
       </div>
 
       <div class="honk-zone">
@@ -72,10 +68,19 @@
 
       <section id="results" class="results" aria-live="polite" hidden>
         <p class="results-kicker" id="kicker"></p>
-        <p class="big"><span id="heard">0</span> <span class="big-unit">people heard that</span></p>
+        <div class="bigs">
+          <div>
+            <p class="big"><span id="heard">0</span></p>
+            <p class="big-unit">heard that</p>
+          </div>
+          <div class="annoyed">
+            <p class="big"><span id="annoyed">0</span></p>
+            <p class="big-unit">are annoyed</p>
+            <p class="hint" id="annoyedHint"></p>
+          </div>
+        </div>
         <p class="verdict" id="verdict"></p>
         <dl class="stats" id="stats"></dl>
-        <p class="effect" id="effect"></p>
         <div class="row">
           <button type="button" class="btn" id="share">Copy my shame</button>
           <span class="hint" id="shareMsg" role="status"></span>
@@ -91,6 +96,7 @@
           <li><strong>Indoors:</strong> closed windows knock off ~27&nbsp;dB, open ones ~10&nbsp;dB. How many are open depends on the season. Offices never open theirs.</li>
           <li><strong>People:</strong> each neighborhood has an approximate residential density and a weekday-daytime density (workers, tourists). The time of day blends between them, and decides how many are asleep or outdoors. Anywhere you click is interpolated from the nearest neighborhoods.</li>
           <li><strong>Waking up:</strong> sleepers start waking around 42&nbsp;dB indoors. Longer honks wake more of them.</li>
+          <li><strong>Annoyance:</strong> everyone within earshot has a fuse. People close enough that the horn is clearly louder than the background are annoyed instantly; the rest get there after a few seconds of sustained honking. Keep holding.</li>
           <li><strong>Dogs, babies, video calls:</strong> NYC has about 1 dog per 14 people. The rest is vibes.</li>
         </ul>
         <p>Accuracy: within an order of magnitude, probably. The $350 fine for unnecessary honking is real (NYC Admin. Code §24-221). Enforcement is not.</p>
@@ -101,7 +107,7 @@
       <div id="map"></div>
       <div class="legend" id="legend" hidden>
         <span><i class="dot heard"></i> heard outdoors <b id="lgHeard"></b></span>
-        <span><i class="dot bothered"></i> actively bothered <b id="lgBothered"></b></span>
+        <span><i class="dot bothered"></i> annoyed instantly <b id="lgBothered"></b></span>
         <span id="lgWokeWrap"><i class="dot woke"></i> woken up <b id="lgWoke"></b></span>
       </div>
     </section>

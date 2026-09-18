@@ -67,11 +67,3 @@ const VEHICLES = [
   { id: "truck", name: "Truck air horn", db: 120, tones: [155, 196, 233], wave: "sawtooth" },
 ];
 
-const REASONS = [
-  { id: "green", name: "The light turned green 0.3 seconds ago", effect: "Time saved: 0.4 seconds, generously. The driver ahead was already lifting their foot." },
-  { id: "stuck", name: "The car ahead is also stuck in traffic", effect: "Distance traffic moved as a result: 0 ft. The car ahead would also like to move." },
-  { id: "double", name: "Someone is double-parked", effect: "The driver is inside ordering a bacon, egg and cheese. They did not hear you. Everyone else did." },
-  { id: "ped", name: "A pedestrian is in the crosswalk (they have the light)", effect: "Pedestrian response: a gesture. Walking speed: reduced, out of spite." },
-  { id: "hi", name: "Saying hi to someone I know", effect: "They didn't notice. Everyone else looked up, saw a stranger, and resumed hating cars." },
-  { id: "despair", name: "General despair", effect: "Valid. Still 0% effective." },
-];
