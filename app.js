@@ -145,10 +145,12 @@ const rings = {
   woke: L.circle([0, 0], { radius: 1, ...ringStyle("#ff3b5c", 0.22) }).addTo(map),
 };
 const ripple = L.circle([0, 0], { radius: 1, color: "#fff", weight: 2, fill: false, opacity: 0, interactive: false }).addTo(map);
-const car = L.marker([0, 0], {
-  icon: L.divIcon({ className: "car", html: "🚕", iconSize: [32, 32], iconAnchor: [16, 16] }),
-  interactive: false,
-}).addTo(map);
+const car = L.marker([0, 0], { interactive: false }).addTo(map);
+
+function setCarIcon() {
+  car.setIcon(L.divIcon({ className: "car", html: state.vehicle.emoji, iconSize: [32, 32], iconAnchor: [16, 16] }));
+}
+setCarIcon();
 
 map.on("click", ev => setPlace({ lat: ev.latlng.lat, lng: ev.latlng.wrap().lng }));
 
@@ -536,13 +538,16 @@ function init() {
     chip.type = "button";
     chip.setAttribute("role", "radio");
     chip.dataset.value = v.id;
-    chip.textContent = v.name;
+    const emoji = document.createElement("span");
+    emoji.className = "emoji";
+    emoji.textContent = v.emoji;
+    chip.append(emoji, v.name);
     return chip;
   }));
 
   syncDay = bindChips("dayChips", () => state.dayType, v => { state.dayType = v; });
   syncSeason = bindChips("seasonChips", () => state.season, v => { state.season = v; });
-  bindChips("vehicleChips", () => state.vehicle.id, v => { state.vehicle = VEHICLES.find(x => x.id === v); })();
+  bindChips("vehicleChips", () => state.vehicle.id, v => { state.vehicle = VEHICLES.find(x => x.id === v); setCarIcon(); })();
 
   $("time").addEventListener("input", ev => { setTime(Number(ev.target.value)); update(); });
   $("nowBtn").addEventListener("click", () => { resetToNow(); update(); });
