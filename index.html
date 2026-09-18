@@ -110,6 +110,11 @@
 
     <section class="map-wrap" aria-label="Map of honk reach">
       <div id="map"></div>
+      <div class="map-bar" id="mapBar" hidden aria-hidden="true">
+        <div class="map-bar-stat"><b id="barHeard">0</b><span>heard</span></div>
+        <div class="map-bar-track"><div class="map-bar-fill" id="barFill"></div></div>
+        <div class="map-bar-stat annoyed"><b id="barAnnoyed">0</b><span>annoyed</span></div>
+      </div>
       <div class="legend" id="legend" hidden>
         <span><i class="dot heard"></i> heard outdoors <b id="lgHeard"></b></span>
         <span><i class="dot bothered"></i> annoyed instantly <b id="lgBothered"></b></span>

@@ -259,6 +259,10 @@ function renderResults(full, reached) {
   $("kicker").textContent = state.hasHonked ? `${seconds.toFixed(1)}-second honk · ${when}` : when;
   $("heard").textContent = fmt(e.heard);
   $("annoyed").textContent = fmt(e.annoyed);
+  $("mapBar").hidden = false;
+  $("barHeard").textContent = fmt(e.heard);
+  $("barAnnoyed").textContent = fmt(e.annoyed);
+  $("barFill").style.width = `${e.heard > 0 ? (100 * e.annoyed / e.heard) : 0}%`;
   $("annoyedHint").textContent = !state.hasHonked ? "hold the horn longer to annoy more"
     : held ? "still climbing — keep holding"
     : reached < 1 ? "sound still spreading…"
